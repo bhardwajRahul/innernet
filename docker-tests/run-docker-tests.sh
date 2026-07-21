@@ -87,6 +87,7 @@ cmd sleep 5
 
 create_peer_docker() {
     local IP=$1
+    local LISTEN_PORT="${2:-}"
     cmd docker create --rm -it \
         --network "$NETWORK" \
         --ip $IP \
@@ -94,6 +95,7 @@ create_peer_docker() {
         --cap-add NET_ADMIN \
         --env RUST_LOG="$CLIENT_RUST_LOG" \
         --env INTERFACE=evilcorp \
+        --env LISTEN_PORT="$LISTEN_PORT" \
         --env INNERNET_ARGS="$INNERNET_ARGS" \
         --env CLIENT_ARGS="$CLIENT_ARGS" \
         innernet /app/start-client.sh
@@ -101,7 +103,7 @@ create_peer_docker() {
 
 info "Starting first peer."
 cmd docker cp "$SERVER_CONTAINER:/app/peer1.toml" "$tmp_dir"
-PEER1_CONTAINER=$(create_peer_docker 172.18.1.2)
+PEER1_CONTAINER=$(create_peer_docker 172.18.1.2 51821)
 info "peer1 started as $PEER1_CONTAINER"
 cmd docker cp "$tmp_dir/peer1.toml" "$PEER1_CONTAINER:/app/invite.toml"
 cmd docker start -a "$PEER1_CONTAINER" | sed -e 's/^/\x1B[0;96mpeer 1\x1B[0m: /' &
@@ -177,6 +179,12 @@ test_short_lived_invitation() {
         --save-config "/app/peer3_2.toml" \
         --invite-expires "30m" \
         --yes
+}
+
+test_install_listen_port() {
+    info "Confirming install applies the requested listen port."
+    cmd docker exec "$PEER1_CONTAINER" bash -c \
+        'innernet $INNERNET_ARGS show "$INTERFACE" | grep -Fq "listening port: 51821"'
 }
 
 test_simultaneous_redemption() {

@@ -86,7 +86,7 @@ pub fn redeem_invite(
         interface,
         &config.interface.private_key,
         config.interface.address,
-        None,
+        config.interface.listen_port,
         Some((
             &config.server.public_key,
             config.server.internal_endpoint.ip(),
